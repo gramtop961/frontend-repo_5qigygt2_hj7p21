@@ -1,28 +1,72 @@
-import { useState } from 'react'
+import React, { useMemo, useState } from 'react';
+import Navbar from './components/Navbar';
+import Hero from './components/Hero';
+import About from './components/About';
+import Store from './components/Store';
+import Footer from './components/Footer';
+import { AnimatePresence, motion } from 'framer-motion';
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [page, setPage] = useState('home');
+  const [cart, setCart] = useState([]);
+  const [cartOpen, setCartOpen] = useState(false);
+
+  const cartCount = useMemo(() => cart.reduce((s, it) => s + it.qty, 0), [cart]);
+
+  const handleAddToCart = (product, delta = 1) => {
+    setCart((prev) => {
+      const idx = prev.findIndex((p) => p.id === product.id);
+      if (idx === -1 && delta > 0) return [...prev, { ...product, qty: 1 }];
+      if (idx === -1) return prev;
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], qty: copy[idx].qty + delta };
+      if (copy[idx].qty <= 0) return copy.filter((_, i) => i !== idx);
+      return copy;
+    });
+    setCartOpen(true);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">
-          Vibe Coding Platform
-        </h1>
-        <p className="text-gray-600 mb-6">
-          Your AI-powered development environment
-        </p>
-        <div className="text-center">
-          <button
-            onClick={() => setCount(count + 1)}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
-          >
-            Count is {count}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
+    <div className="min-h-screen bg-black text-white">
+      <Navbar
+        currentPage={page}
+        onNavigate={setPage}
+        onOpenCart={() => setCartOpen(true)}
+        cartCount={cartCount}
+      />
 
-export default App
+      <main>
+        <AnimatePresence mode="wait">
+          {page === 'home' && (
+            <motion.div
+              key="home"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <Hero onShopNow={() => setPage('store')} />
+              <About />
+            </motion.div>
+          )}
+          {page === 'store' && (
+            <motion.div
+              key="store"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <Store
+                onAddToCart={handleAddToCart}
+                cart={cart}
+                cartOpen={cartOpen}
+                setCartOpen={setCartOpen}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
